@@ -1,6 +1,6 @@
 {
     "name": "metrics",
-    "description": "Stores performance metrics for rust-analyzer.",
+    "description": "Stores performance metrics for zlib-rs.",
     "version": "1.0.0",
     "devDependencies": {
         "typescript": "^4.5.2",
@@ -12,9 +12,9 @@
     },
     "license": "MIT OR Apache-2.0",
     "bugs": {
-        "url": "https://github.com/rust-analyzer/metrics/issues"
+        "url": "https://github.com/trifectatechfoundation/zlib-rs-bench/issues"
     },
-    "homepage": "https://github.com/rust-analyzer/metrics#readme",
+    "homepage": "https://github.com/trifectatechfoundation/zlib-rs-bench/tree/gh-pages#readme",
     "prettier": {
         "trailingComma": "es5",
         "tabWidth": 4,

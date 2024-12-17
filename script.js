@@ -92,7 +92,7 @@ function show_notification(html_text) {
     }, 3000);
 }
 async function main() {
-    const DATA_URL = 'https://raw.githubusercontent.com/rust-analyzer/metrics/master/metrics.json';
+    const DATA_URL = 'https://raw.githubusercontent.com/trifectatechfoundation/zlib-rs-bench/main/metrics.json';
     const data = await (await fetch(DATA_URL)).text();
     const entries = data
         .split('\n')
@@ -145,6 +145,7 @@ async function main() {
                 y: data,
                 hovertext: revision,
                 hovertemplate: `%{y} ${unit}<br>(%{hovertext})`,
+                // These are no longer tracked, so hide them by default
                 visible: !(project === 'ripgrep' ||
                     project === 'diesel' ||
                     project === 'webrender'),
@@ -169,7 +170,7 @@ async function main() {
         Plotly.newPlot(plotDiv, definition.data, definition.layout);
         plotDiv.on('plotly_click', (data) => {
             const commit_hash = data.points[0].hovertext;
-            const url = `https://github.com/rust-analyzer/rust-analyzer/commit/${commit_hash}`;
+            const url = `https://github.com/trifectatechfoundation/zlib-rs/commit/${commit_hash}`;
             const notification_text = `Commit <b>${commit_hash}</b> URL copied to clipboard`;
             navigator.clipboard.writeText(url);
             show_notification(notification_text);

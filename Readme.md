@@ -1,6 +1,6 @@
-## rust-analyzer dashboard
+## zlib-rs performance dashboard
 
-Stores performance metrics for rust-analyzer.
+Stores performance metrics for zlib-rs.
 
 Metrics are automatically published by GitHub Actions.
 
