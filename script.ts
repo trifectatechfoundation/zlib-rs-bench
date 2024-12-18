@@ -2,25 +2,45 @@ type Unit = 'MB' | 'ms' | 'sec';
 type MemoryMetric = [number, 'MB'];
 type TimeMetric = [number, 'ms'];
 
-type Entry = {
-    host: {
-        os: string;
-        cpu: string;
-        mem: string;
-    };
-    timestamp: number;
-    revision: string;
-    metrics: {
-        build?: TimeMetric;
-        [key: `analysis-stats/${string}/${string}`]: TimeMetric | MemoryMetric;
-    };
+type Root = {
+  commit_hash: string
+  timestamp: Timestamp
+  arch: string
+  os: string
+  runner: string
+  cpu_model: string
+  bench_groups: Result[]
 };
 
-type Metric = {
-    project?: string;
-    data: number[];
-    revision: string[];
-    timestamp: number[];
+type Timestamp = {
+  secs_since_epoch: number
+  nanos_since_epoch: number
+};
+
+type Result = {
+  cmd: string[]
+  counters: Counters
+};
+
+type Counters = {
+  cycles: Cycles
+  instructions: Instructions
+  "task-clock": TaskClock
+};
+
+type Cycles = {
+  value: string
+  unit: string
+};
+
+type Instructions = {
+  value: string
+  unit: string
+};
+
+type TaskClock = {
+  value: string
+  unit: string
 };
 
 type Plots = {
@@ -57,84 +77,6 @@ function mapUnitToMax(unit: Unit): Unit {
     }
 }
 
-function unzip(
-    entries: Entry[],
-    start: number | null,
-    end: number | null
-): [Map<string, [Metric[], Unit]>, string[]] {
-    const revisionsMap = new Map<string, number>();
-    const res = new Map<keyof Entry['metrics'], Metric & { unit: Unit }>();
-
-    for (const entry of entries) {
-        if (
-            (start != null && entry.timestamp < start) ||
-            (end != null && entry.timestamp > end)
-        ) {
-            continue;
-        }
-
-        const entries = Object.entries(entry.metrics) as [
-            keyof Entry['metrics'],
-            TimeMetric | MemoryMetric
-        ][];
-        for (let [key, [value, unit]] of entries) {
-            if (!res.has(key)) {
-                res.set(key, {
-                    unit: mapUnitToMax(unit),
-                    data: [],
-                    revision: [],
-                    timestamp: [],
-                });
-            }
-            const r = res.get(key)!;
-
-            if (unit == 'ms' && value < 1000) {
-                r.unit = 'ms';
-            }
-
-            r.data.push(value);
-            r.timestamp.push(entry.timestamp);
-            const revisionHash = entry.revision.substring(
-                0,
-                entry.revision.length - 7
-            );
-            r.revision.push(revisionHash);
-            revisionsMap.set(revisionHash, entry.timestamp);
-        }
-    }
-
-    const sortedRevisionsHash = Array.from(revisionsMap)
-        .sort(([, t1], [, t2]) => t1 - t2) // Sort by timestamp
-        .map(([hash]) => hash); // Extract only the hash
-
-    let newRes = new Map<string, [Metric[], Unit]>();
-
-    for (let [key, metric] of res) {
-        let plotName: string = key;
-        const analysisStatsPrefix = 'analysis-stats/';
-        // Check for aggregated series of form "analysis-stats/<seriesName>/<plotName>"
-        //  - <seriesName> is the project (e.g. "ripgrep", "diesel")
-        //  - <plotName> is the metric (e.g. "total memory", "total time"), it cannot contain a `/`
-        if (key.startsWith(analysisStatsPrefix)) {
-            const [_prefix, project, plot, maybePlot] = key.split('/');
-            // we incorrectly emitted diesel/diesel at some point, so fix that here
-            plotName = project === 'diesel' ? maybePlot : plot;
-            metric.project = project;
-        }
-
-        if (!newRes.has(plotName)) {
-            newRes.set(plotName, [[], metric.unit]);
-        }
-        const entry = newRes.get(plotName)!;
-        entry[0].push(metric);
-        if (entry[1] == 'sec' && metric.unit == 'ms') {
-            entry[1] = 'ms';
-        }
-    }
-
-    return [newRes, sortedRevisionsHash];
-}
-
 function show_notification(html_text: string) {
     var notificationElem = document.getElementById('notification')!;
     notificationElem.innerHTML = html_text;
@@ -144,105 +86,77 @@ function show_notification(html_text: string) {
     }, 3000);
 }
 
+function compression_ng_versus_rs(ng: Result[], rs: Result[]) {
+    var plot = {
+        data: [],
+        layout: {
+            title: "zlib-ng versus zlib-rs (compression)",
+            xaxis: {
+                title: "Compression Level",
+            },
+            yaxis: {
+                title: "Wall Time (ms)",
+                rangemode: "tozero",
+            },
+            height: 700,
+            width: Math.min(1200, window.innerWidth - 30),
+            margin: {
+                l: 50,
+                r: 20,
+                b: 100,
+                t: 100,
+                pad: 4,
+            },
+            legend: {
+                orientation: window.innerWidth < 700 ? "h" : "v",
+            },
+        },
+    };
+
+    plot.data.push({
+        x: ng.map((result) => parseFloat(result.cmd[1])),
+        y: ng.map((result) => parseFloat(result.counters["task-clock"].value)),
+        name: "zlib-ng", 
+    });
+
+    plot.data.push({
+        x: rs.map((result) => parseFloat(result.cmd[1])),
+        y: rs.map((result) => parseFloat(result.counters["task-clock"].value)),
+        name: "zlib-rs", 
+    });
+
+
+    return plot;
+}
+
 async function main() {
-    const DATA_URL =
-        'https://raw.githubusercontent.com/trifectatechfoundation/zlib-rs-bench/main/metrics.json';
+    const DATA_URL = 'https://raw.githubusercontent.com/trifectatechfoundation/zlib-rs-bench/main/metrics-linux-x86.json';
     const data = await (await fetch(DATA_URL)).text();
-    const entries: Entry[] = data
+    const entries: Root[] = data
         .split('\n')
         .filter((it) => it.length > 0)
         .map((it) => JSON.parse(it));
 
     const [start, end] = parseQueryString();
     setTimeFrameInputs(start, end);
-    const [metrics, _revisions] = unzip(
-        entries,
-        start ? +start / 1000 : null,
-        end ? +end / 1000 : null
-    );
+
+
+
+    const final = entries[entries.length - 1];
+    const final_ng = final.bench_groups["blogpost-compress-ng"];
+    const final_rs = final.bench_groups["blogpost-compress-rs"];
+    const plot = compression_ng_versus_rs(final_ng, final_rs);
+
+
+    // Render the plot
+    const plotDiv = document.createElement(
+        "div"
+    ) as any as Plotly.PlotlyHTMLElement;
+
+    Plotly.newPlot(plotDiv, plot.data, plot.layout);
 
     const bodyElement = document.getElementById('inner')!;
-    const plots = new Map<string, Plots>();
-
-    for (let [plotName, [metric, unit]] of metrics) {
-        let plot = plots.get(plotName);
-        if (!plot) {
-            plot = {
-                data: [],
-                layout: {
-                    title: plotName,
-                    xaxis: {
-                        type: 'date',
-                    },
-                    yaxis: {
-                        title: unit,
-                        rangemode: 'tozero',
-                    },
-                    width: Math.min(1200, window.innerWidth - 30),
-                    margin: {
-                        l: 50,
-                        r: 20,
-                        b: 100,
-                        t: 100,
-                        pad: 4,
-                    },
-                    legend: {
-                        orientation: window.innerWidth < 700 ? 'h' : 'v',
-                    },
-                },
-            };
-            plots.set(plotName, plot);
-        }
-        for (let { data, revision, timestamp, project } of metric) {
-            if (unit == 'sec') {
-                data = data.map((it) => it / 1000);
-            }
-
-            plot.data.push({
-                name: project ?? plotName,
-                line: {
-                    shape: 'hv',
-                },
-                x: timestamp.map((n) => new Date(n * 1000)),
-                y: data,
-                hovertext: revision,
-                hovertemplate: `%{y} ${unit}<br>(%{hovertext})`,
-                // These are no longer tracked, so hide them by default
-                visible: !(
-                    project === 'ripgrep' ||
-                    project === 'diesel' ||
-                    project === 'webrender'
-                ),
-            });
-        }
-    }
-    const sortedPlots = Array.from(plots.entries());
-    sortedPlots.sort(([t], [t2]) => t.localeCompare(t2));
-    for (const [, definition] of sortedPlots) {
-        const plotDiv = document.createElement(
-            'div'
-        ) as any as Plotly.PlotlyHTMLElement;
-
-        definition.data.sort((a, b) => {
-            if (a.name < b.name) {
-                return -1;
-            } else if (a.name > b.name) {
-                return 1;
-            } else {
-                return 0;
-            }
-        });
-
-        Plotly.newPlot(plotDiv, definition.data, definition.layout);
-        plotDiv.on('plotly_click', (data) => {
-            const commit_hash: string = (data.points[0] as any).hovertext;
-            const url = `https://github.com/trifectatechfoundation/zlib-rs/commit/${commit_hash}`;
-            const notification_text = `Commit <b>${commit_hash}</b> URL copied to clipboard`;
-            navigator.clipboard.writeText(url);
-            show_notification(notification_text);
-        });
-        bodyElement.appendChild(plotDiv);
-    }
+    bodyElement.appendChild(plotDiv);
 }
 
 function setDays(n: number) {
