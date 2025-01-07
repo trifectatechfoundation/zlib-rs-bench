@@ -100,7 +100,7 @@ function compression_over_time(lines: Root[], counter: CounterName): Plots {
         layout: {
             title: "zlib-rs compression",
             xaxis: {
-                title: "Benchmark Index",
+                title: "Compression Level",
                 tickformat: 'd', // only integers
             },
             yaxis: {
@@ -204,7 +204,7 @@ function decompression_over_time(lines: Root[], counter: CounterName): Plots {
         plot.data.push({
             y: unzipped[level].y,
             text: unzipped[level].sha,
-            name: `level ${level}`,
+            name: `2^${level}`,
             hovertemplate: `%{y} %{text}`
         });
     }
@@ -216,7 +216,7 @@ function compression_ng_versus_rs(commit: string, ng: SingleBench[], rs: SingleB
     let plot: Plots = {
         data: [],
         layout: {
-            title: `zlib-ng versus zlib-rs (compression, on <a href="https://github.com/rust-lang/rust/pull/134444/commits/${commit}">main</a>)`,
+            title: `zlib-ng versus zlib-rs (compression, on <a href="https://github.com/trifectatechfoundation/zlib-rs/commit/${commit}">main</a>)`,
             xaxis: {
                 title: "Compression Level",
             },
@@ -267,7 +267,7 @@ function decompression_ng_versus_rs(commit: string, ng: SingleBench[], rs: Singl
     let plot: Plots = {
         data: [],
         layout: {
-            title: `zlib-ng versus zlib-rs (decompression, on <a href="https://github.com/rust-lang/rust/pull/134444/commits/${commit}">main</a>)`,
+            title: `zlib-ng versus zlib-rs (decompression, on <a href="https://github.com/trifectatechfoundation/zlib-rs/commit/${commit}">main</a>)`,
             xaxis: {
                 title: "Chunk Size (2^n bytes)",
             },
