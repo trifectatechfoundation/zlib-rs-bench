@@ -10,7 +10,7 @@ type Root = {
   os: string
   runner: string
   cpu_model: string
-  bench_groups: Result[]
+  bench_groups: {[key: string]: SingleBench[]},
 };
 
 type Timestamp = {
@@ -18,14 +18,16 @@ type Timestamp = {
   nanos_since_epoch: number
 };
 
-type Result = {
+type SingleBench = {
   cmd: string[]
   counters: Counters
 };
 
+type CounterName = "cycles" | "instructions" | "user-time" | "task-clock";
 type Counters = {
   cycles: Cycles
   instructions: Instructions
+  "user-time": UserTime,
   "task-clock": TaskClock
 };
 
@@ -35,6 +37,11 @@ type Cycles = {
 };
 
 type Instructions = {
+  value: string
+  unit: string
+};
+
+type UserTime = {
   value: string
   unit: string
 };
@@ -79,7 +86,7 @@ function mapUnitToMax(unit: Unit): Unit {
 }
 
 function show_notification(html_text: string) {
-    var notificationElem = document.getElementById('notification')!;
+    let notificationElem = document.getElementById('notification')!;
     notificationElem.innerHTML = html_text;
     notificationElem.classList.remove('hidden');
     setTimeout(() => {
@@ -87,8 +94,8 @@ function show_notification(html_text: string) {
     }, 3000);
 }
 
-function compression_over_time(lines: Root[], counter: string) {
-    var plot = {
+function compression_over_time(lines: Root[], counter: CounterName): Plots {
+    let plot: Plots = {
         data: [],
         layout: {
             title: "zlib-rs compression",
@@ -115,8 +122,7 @@ function compression_over_time(lines: Root[], counter: string) {
         },
     };
 
-    let unzipped = [];
-    var i = 0;
+    let unzipped: {[level: string]: {x: [], y: string[], sha: string[]}} = {};
 
     for (let line of lines) {
         for (let run of line.bench_groups["blogpost-compress-rs"]) {
@@ -147,8 +153,8 @@ function compression_over_time(lines: Root[], counter: string) {
     return plot;
 }
 
-function decompression_over_time(lines: Root[], counter: string) {
-    var plot = {
+function decompression_over_time(lines: Root[], counter: CounterName): Plots {
+    let plot: Plots = {
         data: [],
         layout: {
             title: "zlib-rs decompression",
@@ -175,8 +181,7 @@ function decompression_over_time(lines: Root[], counter: string) {
         },
     };
 
-    let unzipped = [];
-    var i = 0;
+    let unzipped: {[level: string]: {x: [], y: string[], sha: string[]}} = {};
 
     for (let line of lines) {
         for (let run of line.bench_groups["blogpost-uncompress-rs"]) {
@@ -207,8 +212,8 @@ function decompression_over_time(lines: Root[], counter: string) {
     return plot;
 }
 
-function compression_ng_versus_rs(commit: string, ng: Result[], rs: Result[], counter: string) {
-    var plot = {
+function compression_ng_versus_rs(commit: string, ng: SingleBench[], rs: SingleBench[], counter: CounterName): Plots {
+    let plot: Plots = {
         data: [],
         layout: {
             title: `zlib-ng versus zlib-rs (compression, on <a href="https://github.com/rust-lang/rust/pull/134444/commits/${commit}">main</a>)`,
@@ -250,16 +255,16 @@ function compression_ng_versus_rs(commit: string, ng: Result[], rs: Result[], co
             return ((vng / vrs)).toFixed(2);
         }),
         name: "zlib-rs",
-        hovertemplate: 
-        '%{y} (%{text}x faster than zlib-ng)' 
+        hovertemplate:
+        '%{y} (%{text}x faster than zlib-ng)'
     });
 
 
     return plot;
 }
 
-function decompression_ng_versus_rs(commit: string, ng: Result[], rs: Result[], counter: string) {
-    var plot = {
+function decompression_ng_versus_rs(commit: string, ng: SingleBench[], rs: SingleBench[], counter: CounterName): Plots {
+    let plot: Plots = {
         data: [],
         layout: {
             title: `zlib-ng versus zlib-rs (decompression, on <a href="https://github.com/rust-lang/rust/pull/134444/commits/${commit}">main</a>)`,
@@ -301,8 +306,8 @@ function decompression_ng_versus_rs(commit: string, ng: Result[], rs: Result[], 
             return ((vng / vrs)).toFixed(2);
         }),
         name: "zlib-rs",
-        hovertemplate: 
-        '%{y} (%{text}x faster than zlib-ng)' 
+        hovertemplate:
+        '%{y} (%{text}x faster than zlib-ng)'
     });
 
 
@@ -327,14 +332,14 @@ async function update(target: string) {
 }
 
 function render(data_url: string, entries: Root[]) {
-    const bodyElement = document.getElementById('plots');
+    const bodyElement = document.getElementById('plots')!;
 
     // clear the plots from the previous configuration
     while (bodyElement.firstChild) {
         bodyElement.removeChild(bodyElement.firstChild);
     }
 
-    const counter = data_url.includes("macos") ? "user-time" : "task-clock";
+    const counter: CounterName = data_url.includes("macos") ? "user-time" : "task-clock";
 
     {
         const final = entries[entries.length - 1];

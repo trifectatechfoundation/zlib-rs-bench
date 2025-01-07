@@ -28,7 +28,7 @@ function mapUnitToMax(unit) {
     }
 }
 function show_notification(html_text) {
-    var notificationElem = document.getElementById('notification');
+    let notificationElem = document.getElementById('notification');
     notificationElem.innerHTML = html_text;
     notificationElem.classList.remove('hidden');
     setTimeout(() => {
@@ -36,7 +36,7 @@ function show_notification(html_text) {
     }, 3000);
 }
 function compression_over_time(lines, counter) {
-    var plot = {
+    let plot = {
         data: [],
         layout: {
             title: "zlib-rs compression",
@@ -62,8 +62,7 @@ function compression_over_time(lines, counter) {
             },
         },
     };
-    let unzipped = [];
-    var i = 0;
+    let unzipped = {};
     for (let line of lines) {
         for (let run of line.bench_groups["blogpost-compress-rs"]) {
             const key = run.cmd[1];
@@ -88,7 +87,7 @@ function compression_over_time(lines, counter) {
     return plot;
 }
 function decompression_over_time(lines, counter) {
-    var plot = {
+    let plot = {
         data: [],
         layout: {
             title: "zlib-rs decompression",
@@ -114,8 +113,7 @@ function decompression_over_time(lines, counter) {
             },
         },
     };
-    let unzipped = [];
-    var i = 0;
+    let unzipped = {};
     for (let line of lines) {
         for (let run of line.bench_groups["blogpost-uncompress-rs"]) {
             const key = run.cmd[2];
@@ -140,7 +138,7 @@ function decompression_over_time(lines, counter) {
     return plot;
 }
 function compression_ng_versus_rs(commit, ng, rs, counter) {
-    var plot = {
+    let plot = {
         data: [],
         layout: {
             title: `zlib-ng versus zlib-rs (compression, on <a href="https://github.com/rust-lang/rust/pull/134444/commits/${commit}">main</a>)`,
@@ -184,7 +182,7 @@ function compression_ng_versus_rs(commit, ng, rs, counter) {
     return plot;
 }
 function decompression_ng_versus_rs(commit, ng, rs, counter) {
-    var plot = {
+    let plot = {
         data: [],
         layout: {
             title: `zlib-ng versus zlib-rs (decompression, on <a href="https://github.com/rust-lang/rust/pull/134444/commits/${commit}">main</a>)`,
