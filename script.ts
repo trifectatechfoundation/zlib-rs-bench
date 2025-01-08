@@ -128,7 +128,8 @@ function compression_over_time(lines: Root[], counter: CounterName): Plots {
 
     let unzipped: {[level: string]: {x: [], y: number[], error: number[], sha: string[]}} = {};
 
-    for (let line of lines) {
+    for (let i in lines) {
+        let line = lines[i];
         for (let run of line.bench_groups["blogpost-compress-rs"]) {
             const key = run.cmd[1];
 
@@ -136,9 +137,9 @@ function compression_over_time(lines: Root[], counter: CounterName): Plots {
                 unzipped[key] = { x: [], y: [], error: [], sha: [] };
             }
 
-            unzipped[key].y.push(run.counters[counter].value);
-            unzipped[key].error.push(Math.sqrt(run.counters[counter].variance ?? 0));
-            unzipped[key].sha.push(line.commit_hash);
+            unzipped[key].y[i] = run.counters[counter].value;
+            unzipped[key].error[i] = Math.sqrt(run.counters[counter].variance ?? 0);
+            unzipped[key].sha[i] = line.commit_hash;
         }
     }
 
@@ -193,7 +194,8 @@ function decompression_over_time(lines: Root[], counter: CounterName): Plots {
 
     let unzipped: {[level: string]: {x: [], y: number[], error: number[], sha: string[]}} = {};
 
-    for (let line of lines) {
+    for (let i in lines) {
+        let line = lines[i];
         for (let run of line.bench_groups["blogpost-uncompress-rs"]) {
             const key = run.cmd[2];
 
@@ -201,9 +203,9 @@ function decompression_over_time(lines: Root[], counter: CounterName): Plots {
                 unzipped[key] = { x: [], y: [], error: [], sha: [] };
             }
 
-            unzipped[key].y.push(run.counters[counter].value);
-            unzipped[key].error.push(Math.sqrt(run.counters[counter].variance ?? 0));
-            unzipped[key].sha.push(line.commit_hash);
+            unzipped[key].y[i] = run.counters[counter].value;
+            unzipped[key].error[i] = Math.sqrt(run.counters[counter].variance ?? 0);
+            unzipped[key].sha[i] = line.commit_hash;
         }
     }
 
@@ -260,7 +262,7 @@ function compression_ng_versus_rs(commit: string, ng: SingleBench[], rs: SingleB
         y: ng.map((result) => result.counters[counter].value),
         error_y: {
             type: "data",
-            array: ng.map((result) => Math.sqrt(result.counters[counter].value)),
+            array: ng.map((result) => Math.sqrt(result.counters[counter].variance ?? 0)),
             visible: true,
         },
         name: "zlib-ng",
@@ -271,7 +273,7 @@ function compression_ng_versus_rs(commit: string, ng: SingleBench[], rs: SingleB
         y: rs.map((result) => result.counters[counter].value),
         error_y: {
             type: "data",
-            array: rs.map((result) => Math.sqrt(result.counters[counter].value)),
+            array: rs.map((result) => Math.sqrt(result.counters[counter].variance ?? 0)),
             visible: true,
         },
         text: rs.map((result, index) => {
@@ -321,7 +323,7 @@ function decompression_ng_versus_rs(commit: string, ng: SingleBench[], rs: Singl
         y: ng.map((result) => result.counters[counter].value),
         error_y: {
             type: "data",
-            array: ng.map((result) => Math.sqrt(result.counters[counter].value)),
+            array: ng.map((result) => Math.sqrt(result.counters[counter].variance ?? 0)),
             visible: true,
         },
         name: "zlib-ng",
@@ -332,7 +334,7 @@ function decompression_ng_versus_rs(commit: string, ng: SingleBench[], rs: Singl
         y: rs.map((result) => result.counters[counter].value),
         error_y: {
             type: "data",
-            array: rs.map((result) => Math.sqrt(result.counters[counter].value)),
+            array: rs.map((result) => Math.sqrt(result.counters[counter].variance ?? 0)),
             visible: true,
         },
         text: rs.map((result, index) => {
