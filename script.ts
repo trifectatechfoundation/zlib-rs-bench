@@ -100,7 +100,7 @@ function compression_over_time(lines: Root[], counter: CounterName): Plots {
         layout: {
             title: "zlib-rs compression",
             xaxis: {
-                title: "Compression Level",
+                title: "Benchmark Index",
                 tickformat: 'd', // only integers
             },
             yaxis: {

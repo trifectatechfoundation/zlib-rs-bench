@@ -41,7 +41,7 @@ function compression_over_time(lines, counter) {
         layout: {
             title: "zlib-rs compression",
             xaxis: {
-                title: "Compression Level",
+                title: "Benchmark Index",
                 tickformat: 'd', // only integers
             },
             yaxis: {
