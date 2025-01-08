@@ -32,23 +32,27 @@ type Counters = {
 };
 
 type Cycles = {
-  value: string
+  value: number
   unit: string
+  variance: number | undefined
 };
 
 type Instructions = {
-  value: string
+  value: number
   unit: string
+  variance: number | undefined
 };
 
 type UserTime = {
-  value: string
+  value: number
   unit: string
+  variance: number | undefined
 };
 
 type TaskClock = {
-  value: string
+  value: number
   unit: string
+  variance: number | undefined
 };
 
 type Plots = {
@@ -122,17 +126,18 @@ function compression_over_time(lines: Root[], counter: CounterName): Plots {
         },
     };
 
-    let unzipped: {[level: string]: {x: [], y: string[], sha: string[]}} = {};
+    let unzipped: {[level: string]: {x: [], y: number[], error: number[], sha: string[]}} = {};
 
     for (let line of lines) {
         for (let run of line.bench_groups["blogpost-compress-rs"]) {
             const key = run.cmd[1];
 
             if (!unzipped[key]) {
-                unzipped[key] = { x: [], y: [], sha: [] };
+                unzipped[key] = { x: [], y: [], error: [], sha: [] };
             }
 
             unzipped[key].y.push(run.counters[counter].value);
+            unzipped[key].error.push(Math.sqrt(run.counters[counter].variance ?? 0));
             unzipped[key].sha.push(line.commit_hash);
         }
     }
@@ -144,6 +149,11 @@ function compression_over_time(lines: Root[], counter: CounterName): Plots {
 
         plot.data.push({
             y: unzipped[level].y,
+            error_y: {
+                type: "data",
+                array: unzipped[level].error,
+                visible: true,
+            },
             text: unzipped[level].sha,
             name: `level ${level}`,
             hovertemplate: `%{y} %{text}`
@@ -181,17 +191,18 @@ function decompression_over_time(lines: Root[], counter: CounterName): Plots {
         },
     };
 
-    let unzipped: {[level: string]: {x: [], y: string[], sha: string[]}} = {};
+    let unzipped: {[level: string]: {x: [], y: number[], error: number[], sha: string[]}} = {};
 
     for (let line of lines) {
         for (let run of line.bench_groups["blogpost-uncompress-rs"]) {
             const key = run.cmd[2];
 
             if (!unzipped[key]) {
-                unzipped[key] = { x: [], y: [], sha: [] };
+                unzipped[key] = { x: [], y: [], error: [], sha: [] };
             }
 
             unzipped[key].y.push(run.counters[counter].value);
+            unzipped[key].error.push(Math.sqrt(run.counters[counter].variance ?? 0));
             unzipped[key].sha.push(line.commit_hash);
         }
     }
@@ -203,6 +214,11 @@ function decompression_over_time(lines: Root[], counter: CounterName): Plots {
 
         plot.data.push({
             y: unzipped[level].y,
+            error_y: {
+                type: "data",
+                array: unzipped[level].error,
+                visible: true,
+            },
             text: unzipped[level].sha,
             name: `2^${level}`,
             hovertemplate: `%{y} %{text}`
@@ -241,16 +257,26 @@ function compression_ng_versus_rs(commit: string, ng: SingleBench[], rs: SingleB
 
     plot.data.push({
         x: ng.map((result) => parseFloat(result.cmd[1])),
-        y: ng.map((result) => parseFloat(result.counters[counter].value)),
+        y: ng.map((result) => result.counters[counter].value),
+        error_y: {
+            type: "data",
+            array: ng.map((result) => Math.sqrt(result.counters[counter].value)),
+            visible: true,
+        },
         name: "zlib-ng",
     });
 
     plot.data.push({
         x: rs.map((result) => parseFloat(result.cmd[1])),
-        y: rs.map((result) => parseFloat(result.counters[counter].value)),
+        y: rs.map((result) => result.counters[counter].value),
+        error_y: {
+            type: "data",
+            array: rs.map((result) => Math.sqrt(result.counters[counter].value)),
+            visible: true,
+        },
         text: rs.map((result, index) => {
-            let vrs = parseFloat(result.counters[counter].value);
-            let vng = parseFloat(ng[index].counters[counter].value);
+            let vrs = result.counters[counter].value;
+            let vng = ng[index].counters[counter].value;
 
             return ((vng / vrs)).toFixed(2);
         }),
@@ -292,16 +318,26 @@ function decompression_ng_versus_rs(commit: string, ng: SingleBench[], rs: Singl
 
     plot.data.push({
         x: ng.map((result) => parseFloat(result.cmd[2])),
-        y: ng.map((result) => parseFloat(result.counters[counter].value)),
+        y: ng.map((result) => result.counters[counter].value),
+        error_y: {
+            type: "data",
+            array: ng.map((result) => Math.sqrt(result.counters[counter].value)),
+            visible: true,
+        },
         name: "zlib-ng",
     });
 
     plot.data.push({
         x: rs.map((result) => parseFloat(result.cmd[2])),
-        y: rs.map((result) => parseFloat(result.counters[counter].value)),
+        y: rs.map((result) => result.counters[counter].value),
+        error_y: {
+            type: "data",
+            array: rs.map((result) => Math.sqrt(result.counters[counter].value)),
+            visible: true,
+        },
         text: rs.map((result, index) => {
-            let vrs = parseFloat(result.counters[counter].value);
-            let vng = parseFloat(ng[index].counters[counter].value);
+            let vrs = result.counters[counter].value;
+            let vng = ng[index].counters[counter].value;
 
             return ((vng / vrs)).toFixed(2);
         }),
