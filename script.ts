@@ -30,8 +30,9 @@ type Counters = {
 
 type Counter = {
   value: number
-  unit: string
   variance: number | undefined
+  repetitions: number | undefined
+  unit: string
 };
 
 type Plots = {
