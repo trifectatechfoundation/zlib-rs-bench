@@ -25,31 +25,10 @@ type SingleBench = {
 
 type CounterName = "cycles" | "instructions" | "user-time" | "task-clock";
 type Counters = {
-  cycles: Cycles
-  instructions: Instructions
-  "user-time": UserTime,
-  "task-clock": TaskClock
+  [name in CounterName]: Counter
 };
 
-type Cycles = {
-  value: number
-  unit: string
-  variance: number | undefined
-};
-
-type Instructions = {
-  value: number
-  unit: string
-  variance: number | undefined
-};
-
-type UserTime = {
-  value: number
-  unit: string
-  variance: number | undefined
-};
-
-type TaskClock = {
+type Counter = {
   value: number
   unit: string
   variance: number | undefined
@@ -241,67 +220,6 @@ function compare_impls(
     return plot;
 }
 
-function decompression_ng_versus_rs(commit: string, ng: SingleBench[], rs: SingleBench[], counter: CounterName): Plots {
-    let plot: Plots = {
-        data: [],
-        layout: {
-            title: `zlib-ng versus zlib-rs (decompression, on <a href="https://github.com/trifectatechfoundation/zlib-rs/commit/${commit}">main</a>)`,
-            xaxis: {
-                title: "Chunk Size (2^n bytes)",
-            },
-            yaxis: {
-                title: "Wall Time (ms)",
-                rangemode: "tozero",
-            },
-            height: 700,
-            width: Math.min(1200, window.innerWidth - 30),
-            margin: {
-                l: 50,
-                r: 20,
-                b: 100,
-                t: 100,
-                pad: 4,
-            },
-            legend: {
-                orientation: window.innerWidth < 700 ? "h" : "v",
-            },
-        },
-    };
-
-    plot.data.push({
-        x: ng.map((result) => parseFloat(result.cmd[2])),
-        y: ng.map((result) => result.counters[counter].value),
-        error_y: {
-            type: "data",
-            array: ng.map((result) => Math.sqrt(result.counters[counter].variance ?? 0)),
-            visible: true,
-        },
-        name: "zlib-ng",
-    });
-
-    plot.data.push({
-        x: rs.map((result) => parseFloat(result.cmd[2])),
-        y: rs.map((result) => result.counters[counter].value),
-        error_y: {
-            type: "data",
-            array: rs.map((result) => Math.sqrt(result.counters[counter].variance ?? 0)),
-            visible: true,
-        },
-        text: rs.map((result, index) => {
-            let vrs = result.counters[counter].value;
-            let vng = ng[index].counters[counter].value;
-
-            return ((vng / vrs)).toFixed(2);
-        }),
-        name: "zlib-rs",
-        hovertemplate:
-        '%{y} (%{text}x faster than zlib-ng)'
-    });
-
-
-    return plot;
-}
-
 async function main() {
     await update('linux-x86');
 }
@@ -317,6 +235,19 @@ async function update(target: string) {
         .map((it) => JSON.parse(it));
 
     render(data_url, entries);
+}
+
+function render_plot(plot: Plots) {
+    const bodyElement = document.getElementById('plots')!;
+
+    // Render the plot
+    const plotDiv = document.createElement(
+        "div"
+    ) as any as Plotly.PlotlyHTMLElement;
+
+    Plotly.newPlot(plotDiv, plot.data, plot.layout);
+
+    bodyElement.appendChild(plotDiv);
 }
 
 function render(data_url: string, entries: Root[]) {
@@ -343,16 +274,7 @@ function render(data_url: string, entries: Root[]) {
             (cmd) => parseFloat(cmd[2]),
             counter,
         );
-
-
-        // Render the plot
-        const plotDiv = document.createElement(
-            "div"
-        ) as any as Plotly.PlotlyHTMLElement;
-
-        Plotly.newPlot(plotDiv, plot.data, plot.layout);
-
-        bodyElement.appendChild(plotDiv);
+        render_plot(plot);
     }
 
     {
@@ -365,15 +287,7 @@ function render(data_url: string, entries: Root[]) {
             (level) => `2^${level}`,
             counter,
         );
-
-        // Render the plot
-        const plotDiv = document.createElement(
-            "div"
-        ) as any as Plotly.PlotlyHTMLElement;
-
-        Plotly.newPlot(plotDiv, plot.data, plot.layout);
-
-        bodyElement.appendChild(plotDiv);
+        render_plot(plot);
     }
 
     {
@@ -390,16 +304,7 @@ function render(data_url: string, entries: Root[]) {
             (cmd) => parseFloat(cmd[1]),
             counter,
         );
-
-
-        // Render the plot
-        const plotDiv = document.createElement(
-            "div"
-        ) as any as Plotly.PlotlyHTMLElement;
-
-        Plotly.newPlot(plotDiv, plot.data, plot.layout);
-
-        bodyElement.appendChild(plotDiv);
+        render_plot(plot);
     }
 
     {
@@ -412,15 +317,7 @@ function render(data_url: string, entries: Root[]) {
             (level) => `level ${level}`,
             counter,
         );
-
-        // Render the plot
-        const plotDiv = document.createElement(
-            "div"
-        ) as any as Plotly.PlotlyHTMLElement;
-
-        Plotly.newPlot(plotDiv, plot.data, plot.layout);
-
-        bodyElement.appendChild(plotDiv);
+        render_plot(plot);
     }
 }
 
