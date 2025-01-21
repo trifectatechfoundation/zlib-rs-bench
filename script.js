@@ -130,6 +130,9 @@ function compare_impls(title, from_name, from, to_name, to, xaxis_title, get_xva
         },
         name: from_name,
     });
+    if (typeof plot.data[0].x[0] == "string") {
+        plot.data[plot.data.length - 1].type = "bar";
+    }
     plot.data.push({
         x: to.map((result) => get_xval(result.cmd)),
         y: to.map((result) => result.counters[counter].value),
@@ -146,6 +149,9 @@ function compare_impls(title, from_name, from, to_name, to, xaxis_title, get_xva
         name: to_name,
         hovertemplate: `%{y} (%{text}x faster than ${from_name})`
     });
+    if (typeof plot.data[0].x[0] == "string") {
+        plot.data[plot.data.length - 1].type = "bar";
+    }
     return plot;
 }
 async function main() {

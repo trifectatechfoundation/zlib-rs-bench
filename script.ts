@@ -159,10 +159,10 @@ function compare_impls(
     to_name: string,
     to: SingleBench[],
     xaxis_title: string,
-    get_xval: (cmd: string[]) => number,
+    get_xval: (cmd: string[]) => number | string,
     counter: CounterName,
 ): Plots {
-    let plot: Plots = {
+    let plot: Plots & { data: { x: string[] }[] } = {
         data: [],
         layout: {
             title,
@@ -198,6 +198,9 @@ function compare_impls(
         },
         name: from_name,
     });
+    if (typeof plot.data[0].x[0] == "string") {
+        plot.data[plot.data.length - 1].type = "bar";
+    }
 
     plot.data.push({
         x: to.map((result) => get_xval(result.cmd)),
@@ -216,7 +219,9 @@ function compare_impls(
         name: to_name,
         hovertemplate: `%{y} (%{text}x faster than ${from_name})`
     });
-
+    if (typeof plot.data[0].x[0] == "string") {
+        plot.data[plot.data.length - 1].type = "bar";
+    }
 
     return plot;
 }
