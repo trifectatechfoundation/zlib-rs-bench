@@ -154,6 +154,85 @@ function compare_impls(title, from_name, from, to_name, to, xaxis_title, get_xva
     }
     return plot;
 }
+function compare_uncompress(title, metric, from_name, from, to_name, to, third_name, third, xaxis_title, get_xval, counter) {
+    let plot = {
+        data: [],
+        layout: {
+            title,
+            xaxis: {
+                title: xaxis_title,
+                range: [5, 16],
+            },
+            yaxis: {
+                title: metric,
+                rangemode: "tozero",
+            },
+            height: 700,
+            width: Math.min(1200, window.innerWidth - 30),
+            margin: {
+                l: 50,
+                r: 20,
+                b: 100,
+                t: 100,
+                pad: 4,
+            },
+            legend: {
+                orientation: window.innerWidth < 700 ? "h" : "v",
+            },
+        },
+    };
+    plot.data.push({
+        x: from.map((result) => get_xval(result.cmd)),
+        y: from.map((result) => result.counters[counter].value),
+        error_y: {
+            type: "data",
+            array: from.map((result) => { var _a; return Math.sqrt((_a = result.counters[counter].variance) !== null && _a !== void 0 ? _a : 0); }),
+            visible: true,
+        },
+        name: from_name,
+    });
+    if (typeof plot.data[0].x[0] == "string") {
+        plot.data[plot.data.length - 1].type = "bar";
+    }
+    plot.data.push({
+        x: to.map((result) => get_xval(result.cmd)),
+        y: to.map((result) => result.counters[counter].value),
+        error_y: {
+            type: "data",
+            array: to.map((result) => { var _a; return Math.sqrt((_a = result.counters[counter].variance) !== null && _a !== void 0 ? _a : 0); }),
+            visible: true,
+        },
+        text: to.map((result, index) => {
+            let vrs = result.counters[counter].value;
+            let vng = from[index].counters[counter].value;
+            return ((vng / vrs)).toFixed(2);
+        }),
+        name: to_name,
+        mode: 'lines',
+        hovertemplate: `%{y} (%{text}x faster than ${from_name})`
+    });
+    plot.data.push({
+        x: third.map((result) => get_xval(result.cmd)),
+        y: third.map((result) => result.counters[counter].value),
+        error_y: {
+            type: "data",
+            array: to.map((result) => { var _a; return Math.sqrt((_a = result.counters[counter].variance) !== null && _a !== void 0 ? _a : 0); }),
+            visible: true,
+        },
+        text: third.map((result, index) => {
+            let vrs = result.counters[counter].value;
+            let vng = from[index].counters[counter].value;
+            return ((vng / vrs)).toFixed(2);
+        }),
+        name: third_name,
+        mode: 'lines',
+        hovertemplate: `%{y} (%{text}x faster than ${from_name})`
+    });
+    if (typeof plot.data[0].x[0] == "string") {
+        plot.data[plot.data.length - 1].type = "bar";
+    }
+    return plot;
+}
 async function main() {
     await update('linux-x86');
 }
@@ -184,7 +263,8 @@ function render(data_url, entries) {
         const final = entries[entries.length - 1];
         const final_ng = final.bench_groups["blogpost-uncompress-ng"];
         const final_rs = final.bench_groups["blogpost-uncompress-rs"];
-        const plot = compare_impls(`zlib-ng versus zlib-rs (decompression, on <a href="https://github.com/trifectatechfoundation/zlib-rs/commit/${final.commit_hash}">main</a>)`, "zlib-ng", final_ng, "zlib-rs", final_rs, "Chunk Size (2^n bytes)", (cmd) => parseFloat(cmd[2]), counter);
+        const final_chromium = final.bench_groups["blogpost-uncompress-chromium"];
+        const plot = compare_uncompress(`zlib-ng versus zlib-rs (decompression, ${counter}, on <a href="https://github.com/trifectatechfoundation/zlib-rs/commit/${final.commit_hash}">main</a>)`, counter, "zlib-ng", final_ng, "zlib-rs", final_rs, "zlib-chromium", final_chromium, "Chunk Size (2^n bytes)", (cmd) => parseFloat(cmd[2]), counter);
         render_plot(plot);
     }
     {
