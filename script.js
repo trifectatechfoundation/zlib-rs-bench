@@ -18,6 +18,19 @@ function counter_to_title(counter) {
         }
     }
 }
+function counter_to_verb(counter) {
+    switch (counter) {
+        case "task-clock": {
+            return "faster";
+        }
+        case "user-time": {
+            return "faster";
+        }
+        default: {
+            return "better";
+        }
+    }
+}
 function parseQueryString() {
     let start = null;
     let end = null;
@@ -168,7 +181,7 @@ function compare_impls(title, from_name, from, to_name, to, xaxis_title, get_xva
             return ((vng / vrs)).toFixed(2);
         }),
         name: to_name,
-        hovertemplate: `%{y} (%{text}x faster than ${from_name})`
+        hovertemplate: `%{y} (%{text}x ${counter_to_verb(counter)} than ${from_name})`
     });
     if (typeof plot.data[0].x[0] == "string") {
         plot.data[plot.data.length - 1].type = "bar";

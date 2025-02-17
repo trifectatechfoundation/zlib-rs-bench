@@ -25,13 +25,21 @@ type SingleBench = {
 
 type CounterName = "cycles" | "instructions" | "user-time" | "task-clock";
 
-function counter_to_title(counter: CounterName) { 
+function counter_to_title(counter: CounterName) {
     switch (counter) {
         case "task-clock": { return "Wall Time (ms)"; }
         case "user-time": { return "Wall Time (ms)"; }
         case "cycles": { return "Cycles"; }
         case "instructions": { return "Instructions"; }
         default: { return "unknown"; }
+    }
+}
+
+function counter_to_verb(counter: CounterName) {
+    switch (counter) {
+        case "task-clock": { return "faster"; }
+        case "user-time": { return "faster"; }
+        default: { return "better"; }
     }
 }
 
@@ -107,7 +115,7 @@ function results_over_time(
                 tickformat: 'd', // only integers
             },
             yaxis: {
-                title: counter_to_title(counter), 
+                title: counter_to_title(counter),
                 rangemode: "tozero",
             },
             height: 700,
@@ -185,7 +193,7 @@ function compare_impls(
                 range: range,
             },
             yaxis: {
-                title: counter_to_title(counter), 
+                title: counter_to_title(counter),
                 rangemode: "tozero",
             },
             height: 700,
@@ -217,7 +225,6 @@ function compare_impls(
         plot.data[plot.data.length - 1].type = "bar";
     }
 
-
     plot.data.push({
         x: to.map((result) => get_xval(result.cmd)),
         y: to.map((result) => result.counters[counter].value),
@@ -233,7 +240,7 @@ function compare_impls(
             return ((vng / vrs)).toFixed(2);
         }),
         name: to_name,
-        hovertemplate: `%{y} (%{text}x faster than ${from_name})`
+        hovertemplate: `%{y} (%{text}x ${counter_to_verb(counter)} than ${from_name})`
     });
     if (typeof plot.data[0].x[0] == "string") {
         plot.data[plot.data.length - 1].type = "bar";
