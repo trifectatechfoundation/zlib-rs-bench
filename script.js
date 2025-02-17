@@ -1,4 +1,23 @@
 "use strict";
+function counter_to_title(counter) {
+    switch (counter) {
+        case "task-clock": {
+            return "Wall Time (ms)";
+        }
+        case "user-time": {
+            return "Wall Time (ms)";
+        }
+        case "cycles": {
+            return "Cycles";
+        }
+        case "instructions": {
+            return "Instructions";
+        }
+        default: {
+            return "unknown";
+        }
+    }
+}
 function parseQueryString() {
     let start = null;
     let end = null;
@@ -46,7 +65,7 @@ function results_over_time(title, lines, group, keys, get_key, key_to_name, coun
                 tickformat: 'd', // only integers
             },
             yaxis: {
-                title: "Wall Time (ms)",
+                title: counter_to_title(counter),
                 rangemode: "tozero",
             },
             height: 700,
@@ -104,7 +123,7 @@ function compare_impls(title, from_name, from, to_name, to, xaxis_title, get_xva
                 range: range,
             },
             yaxis: {
-                title: "Wall Time (ms)",
+                title: counter_to_title(counter),
                 rangemode: "tozero",
             },
             height: 700,
@@ -157,16 +176,17 @@ function compare_impls(title, from_name, from, to_name, to, xaxis_title, get_xva
     return plot;
 }
 async function main() {
-    await update('linux-x86');
+    await update('linux-x86', 'task-clock');
 }
-async function update(target) {
+async function update(target, counter) {
+    console.log(counter);
     let data_url = `https://raw.githubusercontent.com/trifectatechfoundation/zlib-rs-bench/main/metrics-${target}.json`;
     const data = await (await fetch(data_url)).text();
     const entries = data
         .split('\n')
         .filter((it) => it.length > 0)
         .map((it) => JSON.parse(it));
-    render(data_url, entries);
+    render(data_url, entries, counter);
 }
 function render_plot(plot) {
     const bodyElement = document.getElementById('plots');
@@ -175,24 +195,24 @@ function render_plot(plot) {
     Plotly.newPlot(plotDiv, plot.data, plot.layout);
     bodyElement.appendChild(plotDiv);
 }
-function render(data_url, entries) {
+function render(data_url, entries, counter) {
     const bodyElement = document.getElementById('plots');
     // clear the plots from the previous configuration
     while (bodyElement.firstChild) {
         bodyElement.removeChild(bodyElement.firstChild);
     }
-    const counter = data_url.includes("macos") ? "user-time" : "task-clock";
+    console.log(counter);
     {
         const final = entries[entries.length - 1];
         const final_ng = final.bench_groups["blogpost-uncompress-ng"];
         const final_rs = final.bench_groups["blogpost-uncompress-rs"];
         const final_chromium = final.bench_groups["blogpost-uncompress-chromium"];
         {
-            const plot = compare_impls(`zlib-ng versus zlib-rs (decompression, ${counter}, on <a href="https://github.com/trifectatechfoundation/zlib-rs/commit/${final.commit_hash}">main</a>)`, "zlib-ng", final_ng, "zlib-rs", final_rs, "input chunk size (power of 2 bytes)", (cmd) => parseFloat(cmd[2]), counter, [5, 16]);
+            const plot = compare_impls(`zlib-ng versus zlib-rs (decompression, ${counter}, on <a href="https://github.com/trifectatechfoundation/zlib-rs/commit/${final.commit_hash}">main</a>)`, "zlib-ng", final_ng, "zlib-rs", final_rs, "Input Chunk Size (power of 2 bytes)", (cmd) => parseFloat(cmd[2]), counter, [5, 16]);
             render_plot(plot);
         }
         {
-            const plot = compare_impls(`zlib-chromium versus zlib-rs (decompression, ${counter}, on <a href="https://github.com/trifectatechfoundation/zlib-rs/commit/${final.commit_hash}">main</a>)`, "zlib-chromium", final_chromium, "zlib-rs", final_rs, "input chunk size (power of 2 bytes)", (cmd) => parseFloat(cmd[2]), counter, [5, 16]);
+            const plot = compare_impls(`zlib-chromium versus zlib-rs (decompression, ${counter}, on <a href="https://github.com/trifectatechfoundation/zlib-rs/commit/${final.commit_hash}">main</a>)`, "zlib-chromium", final_chromium, "zlib-rs", final_rs, "Input Chunk Size (power of 2 bytes)", (cmd) => parseFloat(cmd[2]), counter, [5, 16]);
             render_plot(plot);
         }
     }

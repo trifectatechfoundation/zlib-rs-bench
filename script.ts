@@ -24,6 +24,17 @@ type SingleBench = {
 };
 
 type CounterName = "cycles" | "instructions" | "user-time" | "task-clock";
+
+function counter_to_title(counter: CounterName) { 
+    switch (counter) {
+        case "task-clock": { return "Wall Time (ms)"; }
+        case "user-time": { return "Wall Time (ms)"; }
+        case "cycles": { return "Cycles"; }
+        case "instructions": { return "Instructions"; }
+        default: { return "unknown"; }
+    }
+}
+
 type Counters = {
   [name in CounterName]: Counter
 };
@@ -96,7 +107,7 @@ function results_over_time(
                 tickformat: 'd', // only integers
             },
             yaxis: {
-                title: "Wall Time (ms)",
+                title: counter_to_title(counter), 
                 rangemode: "tozero",
             },
             height: 700,
@@ -163,6 +174,8 @@ function compare_impls(
     counter: CounterName,
     range: number[],
 ): Plots {
+
+
     let plot: Plots & { data: { x: string[] }[] } = {
         data: [],
         layout: {
@@ -172,7 +185,7 @@ function compare_impls(
                 range: range,
             },
             yaxis: {
-                title: "Wall Time (ms)",
+                title: counter_to_title(counter), 
                 rangemode: "tozero",
             },
             height: 700,
@@ -230,10 +243,11 @@ function compare_impls(
 }
 
 async function main() {
-    await update('linux-x86');
+    await update('linux-x86', 'task-clock');
 }
 
-async function update(target: string) {
+async function update(target: string, counter: CounterName) {
+    console.log(counter);
     let data_url = `https://raw.githubusercontent.com/trifectatechfoundation/zlib-rs-bench/main/metrics-${target}.json`
 
     const data = await (await fetch(data_url)).text();
@@ -243,7 +257,7 @@ async function update(target: string) {
         .filter((it) => it.length > 0)
         .map((it) => JSON.parse(it));
 
-    render(data_url, entries);
+    render(data_url, entries, counter);
 }
 
 function render_plot(plot: Plots) {
@@ -259,7 +273,7 @@ function render_plot(plot: Plots) {
     bodyElement.appendChild(plotDiv);
 }
 
-function render(data_url: string, entries: Root[]) {
+function render(data_url: string, entries: Root[], counter: CounterName) {
     const bodyElement = document.getElementById('plots')!;
 
     // clear the plots from the previous configuration
@@ -267,7 +281,7 @@ function render(data_url: string, entries: Root[]) {
         bodyElement.removeChild(bodyElement.firstChild);
     }
 
-    const counter: CounterName = data_url.includes("macos") ? "user-time" : "task-clock";
+    console.log(counter);
 
     {
         const final = entries[entries.length - 1];
@@ -282,7 +296,7 @@ function render(data_url: string, entries: Root[]) {
                 final_ng,
                 "zlib-rs",
                 final_rs,
-                "input chunk size (power of 2 bytes)",
+                "Input Chunk Size (power of 2 bytes)",
                 (cmd) => parseFloat(cmd[2]),
                 counter,
                 [5, 16],
@@ -297,7 +311,7 @@ function render(data_url: string, entries: Root[]) {
                 final_chromium,
                 "zlib-rs",
                 final_rs,
-                "input chunk size (power of 2 bytes)",
+                "Input Chunk Size (power of 2 bytes)",
                 (cmd) => parseFloat(cmd[2]),
                 counter,
                 [5, 16],

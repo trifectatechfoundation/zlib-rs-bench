@@ -60,12 +60,20 @@
 
     <div id="buttons">
         <label>
-            <input checked type="radio" name="target" value="linux-x86" onclick="update(this.value)">
-            <span>linux-x86</span>
+            <input checked type="radio" name="target" value="linux-x86" onclick="update(this.value, 'task-clock')">
+            <span>linux-x86 / task-clock</span>
         </label>
         <label>
-            <input type="radio" name="target" value="macos-arm64" onclick="update(this.value)">
-            <span>macos-arm64</span>
+            <input type="radio" name="target" value="linux-x86" onclick="update(this.value, 'cycles')">
+            <span>linux-x86 / cycles</span>
+        </label>
+        <label>
+            <input type="radio" name="target" value="linux-x86" onclick="update(this.value, 'instructions')">
+            <span>linux-x86 / instructions</span>
+        </label>
+        <label>
+            <input type="radio" name="target" value="macos-arm64" onclick="update(this.value, 'user-time')">
+            <span>macos-arm64 / user-time</span>
         </label>
     </div>
     <div id="plots"></div>
