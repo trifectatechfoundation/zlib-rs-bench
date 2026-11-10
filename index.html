@@ -73,6 +73,19 @@
         </label>
 
         <label>
+            <input type="radio" name="target" value="linux-arm64" onclick="update(this.value, 'task-clock')">
+            <span>linux-arm64 / task-clock</span>
+        </label>
+        <label>
+            <input type="radio" name="target" value="linux-arm64" onclick="update(this.value, 'cycles')">
+            <span>linux-arm64 / cycles</span>
+        </label>
+        <label>
+            <input type="radio" name="target" value="linux-arm64" onclick="update(this.value, 'instructions')">
+            <span>linux-arm64 / instructions</span>
+        </label>
+
+        <label>
             <input type="radio" name="target" value="linux-loongarch64" onclick="update(this.value, 'task-clock')">
             <span>linux-loongarch64 / task-clock</span>
         </label>
