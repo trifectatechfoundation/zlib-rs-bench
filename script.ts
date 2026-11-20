@@ -10,8 +10,21 @@ type Root = {
   os: string
   runner: string
   cpu_model: string
-  bench_groups: {[key: string]: SingleBench[]},
+  toolchains: {[name: string]: Toolchain}
+  subjects: {[id: string]: Subject}
+  benchmarks: {[benchmark: string]: {[subject: string]: SingleBench[]}},
 };
+
+type Toolchain = {
+  version: string
+  label: string
+}
+
+type Subject = {
+  name: string
+  version: string
+  toolchain: string
+}
 
 type Timestamp = {
   secs_since_epoch: number
@@ -100,7 +113,8 @@ function show_notification(html_text: string) {
 function results_over_time(
     title: string,
     lines: Root[],
-    group: string,
+    benchmark: string,
+    subject: string,
     keys: string[],
     get_key: (cmd: string[]) => string,
     key_to_name: (key: string) => string,
@@ -137,7 +151,7 @@ function results_over_time(
 
     for (let i in lines) {
         let line = lines[i];
-        for (let run of line.bench_groups[group]) {
+        for (let run of line.benchmarks[benchmark][subject]) {
             const key = get_key(run.cmd);
 
             if (!unzipped[key]) {
@@ -264,7 +278,7 @@ async function update(target: string, counter: CounterName) {
         .filter((it) => it.length > 0)
         .map((it) => JSON.parse(it));
 
-    render(data_url, entries, counter);
+    render(target, entries, counter);
 }
 
 function render_plot(plot: Plots) {
@@ -280,7 +294,7 @@ function render_plot(plot: Plots) {
     bodyElement.appendChild(plotDiv);
 }
 
-function render(data_url: string, entries: Root[], counter: CounterName) {
+function render(target: string,  entries: Root[], counter: CounterName) {
     const bodyElement = document.getElementById('plots')!;
 
     // clear the plots from the previous configuration
@@ -290,11 +304,13 @@ function render(data_url: string, entries: Root[], counter: CounterName) {
 
     console.log(counter);
 
+    const cc = target.includes("macos") ? "clang" : "gcc";
+
     {
         const final = entries[entries.length - 1];
-        const final_ng = final.bench_groups["blogpost-uncompress-ng"];
-        const final_rs = final.bench_groups["blogpost-uncompress-rs"];
-        const final_chromium = final.bench_groups["blogpost-uncompress-chromium"];
+        const final_ng = final.benchmarks["decompression"][`zlib-ng-${cc}`];
+        const final_rs = final.benchmarks["decompression"]["zlib-rs"];
+        const final_chromium = final.benchmarks["decompression"][`zlib-chromium-${cc}`];
 
         {
             const plot = compare_impls(
@@ -331,7 +347,8 @@ function render(data_url: string, entries: Root[], counter: CounterName) {
         const plot = results_over_time(
             "zlib-rs decompression",
             entries,
-            "blogpost-uncompress-rs",
+            "decompression",
+            "zlib-rs",
             Array.from({ length: 24 - 4 + 1 }, (_, i) => String(24 - i)),
             (cmd) => cmd[2],
             (level) => `2^${level}`,
@@ -342,8 +359,8 @@ function render(data_url: string, entries: Root[], counter: CounterName) {
 
     {
         const final = entries[entries.length - 1];
-        const final_ng = final.bench_groups["blogpost-compress-ng"];
-        const final_rs = final.bench_groups["blogpost-compress-rs"];
+        const final_ng = final.benchmarks["compression"][`zlib-ng-${cc}`];
+        const final_rs = final.benchmarks["compression"]["zlib-rs"];
         const plot = compare_impls(
             `zlib-ng versus zlib-rs (compression, on <a href="https://github.com/trifectatechfoundation/zlib-rs/commit/${final.commit_hash}">main</a>)`,
             "zlib-ng",
@@ -362,7 +379,8 @@ function render(data_url: string, entries: Root[], counter: CounterName) {
         const plot = results_over_time(
             "zlib-rs compression",
             entries,
-            "blogpost-compress-rs",
+            "compression",
+            "zlib-rs",
             ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"].reverse(),
             (cmd) => cmd[1],
             (level) => `level ${level}`,
