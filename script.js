@@ -67,7 +67,7 @@ function show_notification(html_text) {
         notificationElem.classList.add('hidden');
     }, 3000);
 }
-function results_over_time(title, lines, group, keys, get_key, key_to_name, counter) {
+function results_over_time(title, lines, benchmark, subject, keys, get_key, key_to_name, counter) {
     var _a;
     let plot = {
         data: [],
@@ -98,7 +98,7 @@ function results_over_time(title, lines, group, keys, get_key, key_to_name, coun
     let unzipped = {};
     for (let i in lines) {
         let line = lines[i];
-        for (let run of line.bench_groups[group]) {
+        for (let run of line.benchmarks[benchmark][subject]) {
             const key = get_key(run.cmd);
             if (!unzipped[key]) {
                 unzipped[key] = { x: [], y: [], error: [], sha: [] };
@@ -199,7 +199,7 @@ async function update(target, counter) {
         .split('\n')
         .filter((it) => it.length > 0)
         .map((it) => JSON.parse(it));
-    render(data_url, entries, counter);
+    render(target, entries, counter);
 }
 function render_plot(plot) {
     const bodyElement = document.getElementById('plots');
@@ -208,18 +208,19 @@ function render_plot(plot) {
     Plotly.newPlot(plotDiv, plot.data, plot.layout);
     bodyElement.appendChild(plotDiv);
 }
-function render(data_url, entries, counter) {
+function render(target, entries, counter) {
     const bodyElement = document.getElementById('plots');
     // clear the plots from the previous configuration
     while (bodyElement.firstChild) {
         bodyElement.removeChild(bodyElement.firstChild);
     }
     console.log(counter);
+    const cc = target.includes("macos") ? "clang" : "gcc";
     {
         const final = entries[entries.length - 1];
-        const final_ng = final.bench_groups["blogpost-uncompress-ng"];
-        const final_rs = final.bench_groups["blogpost-uncompress-rs"];
-        const final_chromium = final.bench_groups["blogpost-uncompress-chromium"];
+        const final_ng = final.benchmarks["decompression"][`zlib-ng-${cc}`];
+        const final_rs = final.benchmarks["decompression"]["zlib-rs"];
+        const final_chromium = final.benchmarks["decompression"][`zlib-chromium-${cc}`];
         {
             const plot = compare_impls(`zlib-ng versus zlib-rs (decompression, ${counter}, on <a href="https://github.com/trifectatechfoundation/zlib-rs/commit/${final.commit_hash}">main</a>)`, "zlib-ng", final_ng, "zlib-rs", final_rs, "Input Chunk Size (power of 2 bytes)", (cmd) => parseFloat(cmd[2]), counter, [5, 16]);
             render_plot(plot);
@@ -230,18 +231,18 @@ function render(data_url, entries, counter) {
         }
     }
     {
-        const plot = results_over_time("zlib-rs decompression", entries, "blogpost-uncompress-rs", Array.from({ length: 24 - 4 + 1 }, (_, i) => String(24 - i)), (cmd) => cmd[2], (level) => `2^${level}`, counter);
+        const plot = results_over_time("zlib-rs decompression", entries, "decompression", "zlib-rs", Array.from({ length: 24 - 4 + 1 }, (_, i) => String(24 - i)), (cmd) => cmd[2], (level) => `2^${level}`, counter);
         render_plot(plot);
     }
     {
         const final = entries[entries.length - 1];
-        const final_ng = final.bench_groups["blogpost-compress-ng"];
-        const final_rs = final.bench_groups["blogpost-compress-rs"];
+        const final_ng = final.benchmarks["compression"][`zlib-ng-${cc}`];
+        const final_rs = final.benchmarks["compression"]["zlib-rs"];
         const plot = compare_impls(`zlib-ng versus zlib-rs (compression, on <a href="https://github.com/trifectatechfoundation/zlib-rs/commit/${final.commit_hash}">main</a>)`, "zlib-ng", final_ng, "zlib-rs", final_rs, "Compression Level", (cmd) => parseFloat(cmd[1]), counter, [0, 9]);
         render_plot(plot);
     }
     {
-        const plot = results_over_time("zlib-rs compression", entries, "blogpost-compress-rs", ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"].reverse(), (cmd) => cmd[1], (level) => `level ${level}`, counter);
+        const plot = results_over_time("zlib-rs compression", entries, "compression", "zlib-rs", ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"].reverse(), (cmd) => cmd[1], (level) => `level ${level}`, counter);
         render_plot(plot);
     }
 }
