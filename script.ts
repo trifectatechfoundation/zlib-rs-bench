@@ -187,17 +187,13 @@ function results_over_time(
 
 function compare_impls(
     title: string,
-    from_name: string,
-    from: SingleBench[],
-    to_name: string,
-    to: SingleBench[],
+    subjects: {[id: string]: Subject},
+    benchmark: {[subject: string]: SingleBench[]},
     xaxis_title: string,
     get_xval: (cmd: string[]) => number | string,
     counter: CounterName,
     range: number[],
 ): Plots {
-
-
     let plot: Plots & { data: { x: string[] }[] } = {
         data: [],
         layout: {
@@ -225,39 +221,22 @@ function compare_impls(
         },
     };
 
-    plot.data.push({
-        x: from.map((result) => get_xval(result.cmd)),
-        y: from.map((result) => result.counters[counter].value),
-        error_y: {
-            type: "data",
-            array: from.map((result) => Math.sqrt(result.counters[counter].variance ?? 0)),
-            visible: true,
-        },
-        name: from_name,
-    });
-    if (typeof plot.data[0].x[0] == "string") {
-        plot.data[plot.data.length - 1].type = "bar";
-    }
+    for (const subject in benchmark) {
+        const data = benchmark[subject];
 
-    plot.data.push({
-        x: to.map((result) => get_xval(result.cmd)),
-        y: to.map((result) => result.counters[counter].value),
-        error_y: {
-            type: "data",
-            array: to.map((result) => Math.sqrt(result.counters[counter].variance ?? 0)),
-            visible: true,
-        },
-        text: to.map((result, index) => {
-            let vrs = result.counters[counter].value;
-            let vng = from[index]?.counters[counter].value;
-
-            return ((vng / vrs)).toFixed(2);
-        }),
-        name: to_name,
-        hovertemplate: `%{y} (%{text}x ${counter_to_verb(counter)} than ${from_name})`
-    });
-    if (typeof plot.data[0].x[0] == "string") {
-        plot.data[plot.data.length - 1].type = "bar";
+        plot.data.push({
+            x: data.map((result) => get_xval(result.cmd)),
+            y: data.map((result) => result.counters[counter].value),
+            error_y: {
+                type: "data",
+                array: data.map((result) => Math.sqrt(result.counters[counter].variance ?? 0)),
+                visible: true,
+            },
+            name: subjects[subject].name,
+        });
+        if (typeof plot.data[0].x[0] == "string") {
+            plot.data[plot.data.length - 1].type = "bar";
+        }
     }
 
     return plot;
@@ -304,43 +283,19 @@ function render(target: string,  entries: Root[], counter: CounterName) {
 
     console.log(counter);
 
-    const cc = target.includes("macos") ? "clang" : "gcc";
+    const final = entries[entries.length - 1];
 
     {
-        const final = entries[entries.length - 1];
-        const final_ng = final.benchmarks["decompression"][`zlib-ng-${cc}`];
-        const final_rs = final.benchmarks["decompression"]["zlib-rs"];
-        const final_chromium = final.benchmarks["decompression"][`zlib-chromium-${cc}`];
-
-        {
-            const plot = compare_impls(
-                `zlib-ng versus zlib-rs (decompression, ${counter}, on <a href="https://github.com/trifectatechfoundation/zlib-rs/commit/${final.commit_hash}">main</a>)`,
-                "zlib-ng",
-                final_ng,
-                "zlib-rs",
-                final_rs,
-                "Input Chunk Size (power of 2 bytes)",
-                (cmd) => parseFloat(cmd[2]),
-                counter,
-                [5, 16],
-            );
-            render_plot(plot);
-        }
-
-        {
-            const plot = compare_impls(
-                `zlib-chromium versus zlib-rs (decompression, ${counter}, on <a href="https://github.com/trifectatechfoundation/zlib-rs/commit/${final.commit_hash}">main</a>)`,
-                "zlib-chromium",
-                final_chromium,
-                "zlib-rs",
-                final_rs,
-                "Input Chunk Size (power of 2 bytes)",
-                (cmd) => parseFloat(cmd[2]),
-                counter,
-                [5, 16],
-            );
-            render_plot(plot);
-        }
+        const plot = compare_impls(
+            `Decompression (${counter}, on <a href="https://github.com/trifectatechfoundation/zlib-rs/commit/${final.commit_hash}">main</a>)`,
+            final.subjects,
+            final.benchmarks["decompression"],
+            "Input Chunk Size (power of 2 bytes)",
+            (cmd) => parseFloat(cmd[2]),
+            counter,
+            [5, 16],
+        );
+        render_plot(plot);
     }
 
     {
@@ -358,15 +313,10 @@ function render(target: string,  entries: Root[], counter: CounterName) {
     }
 
     {
-        const final = entries[entries.length - 1];
-        const final_ng = final.benchmarks["compression"][`zlib-ng-${cc}`];
-        const final_rs = final.benchmarks["compression"]["zlib-rs"];
         const plot = compare_impls(
-            `zlib-ng versus zlib-rs (compression, on <a href="https://github.com/trifectatechfoundation/zlib-rs/commit/${final.commit_hash}">main</a>)`,
-            "zlib-ng",
-            final_ng,
-            "zlib-rs",
-            final_rs,
+            `Compression (${counter}, on <a href="https://github.com/trifectatechfoundation/zlib-rs/commit/${final.commit_hash}">main</a>)`,
+            final.subjects,
+            final.benchmarks["compression"],
             "Compression Level",
             (cmd) => parseFloat(cmd[1]),
             counter,
